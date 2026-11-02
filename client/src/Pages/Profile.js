@@ -22,7 +22,8 @@ function Profile() {
     setisverified(localStorage.getItem("isVerified"));
   }, [])
 
-  const handlelogout = (e) => {
+  const handlelogout = async (e) => {
+    try { await axios.post("/api/v1/auth/logout"); } catch (_) { /* Clear local state even if the session expired. */ }
     localStorage.setItem("auth", "");
     localStorage.setItem("name", "");
     localStorage.setItem("email", "");

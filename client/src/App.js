@@ -11,6 +11,7 @@ import Contact from './Pages/Contact';
 import Landing from './Pages/Landing';
 import FilesPage from './Pages/File';
 import { ToastContainer } from 'react-toastify';
+import NotFound from './Pages/NotFound';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/tnc" element={<TNC />} />
       <Route path="/seefile" element={<FilesPage/>} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
     </BrowserRouter>
     <ToastContainer

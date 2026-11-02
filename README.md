@@ -51,7 +51,17 @@
     - Support for video calls with a maximum of 4 participants.
   - 12. **Multiple People Editing Simultaneously:**
     - Enabling multiple users to edit code simultaneously.
-  - 13. **Opening Multiple Editor Tabs Together:**
+- 13. **Opening Multiple Editor Tabs Together:**
     - Feature to open and work on multiple editor tabs concurrently.
   - 14. **File Transfer Functionality:**
-    - Implementation of file transfer capabilities among users.
+    - Implementation of file transfer capabilities among users.
+
+## Production setup
+
+1. Copy `Server/.env.example` to `Server/.env` and replace every placeholder used by your deployment.
+2. Use a long, random `JWT_SECRET`, HTTPS, a restricted MongoDB user, and an explicit comma-separated `CLIENT_URL` allowlist.
+3. Set `VIDEO_SDK_TOKEN` on the server. Never place VideoSDK or RapidAPI credentials in the React application.
+4. Rotate the VideoSDK credential that existed in older frontend source history before deploying this version.
+5. Build the client with `npm run build` and start the API with `npm start` from `Server`.
+
+The API includes allowlisted CORS, hardened HTTP headers, bounded request bodies, authentication/OTP/compiler rate limits, Mongo-style input rejection, scoped password-reset tokens, HTTP-only session cookies, resource ownership checks, authenticated Socket.IO rooms, and upstream timeouts. Production tuning values are documented in `Server/.env.example`.

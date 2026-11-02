@@ -12,6 +12,7 @@ const ForgotPassword = () => {
     const [otp, setotp] = useState("");
     const [otpverify, setotpverify] = useState(false);
     const [newpassword, setnewpassword] = useState("");
+    const [resetToken, setResetToken] = useState("");
     const navigate = useNavigate();
     const handleforgotemail = (e) => {
         setemail(e.target.value);
@@ -67,6 +68,7 @@ const ForgotPassword = () => {
                 },{headers:headers});
                 const otpcheck = response.data;
                 setotpverify(otpcheck.success);
+                setResetToken(otpcheck.resetToken || "");
                 toast.success(`${response.data.message}`, {
                     position: "top-right",
                     autoClose: 5000,
@@ -80,7 +82,7 @@ const ForgotPassword = () => {
                 });
             }
             catch (error) {
-                toast.error(`${e.response.data.message}`, {
+                toast.error(error.response?.data?.message || "Unable to verify the code", {
                     position: "top-right",
                     autoClose: 5000,
                     hideProgressBar: false,
@@ -96,10 +98,10 @@ const ForgotPassword = () => {
         else if (verified && otpverify) {
             try {
                 const response = await axios.post("/api/v1/auth/recievepassword/true", {
-                    email, password: newpassword
-                },{headers:headers});
+                    email, password: newpassword, resetToken
+                });
                 const result = response.data;
-                toast.success(`${result.response}`, {
+                toast.success(`${result.message}`, {
                     position: "top-right",
                     autoClose: 5000,
                     hideProgressBar: false,
@@ -138,18 +140,18 @@ const ForgotPassword = () => {
                         {verified ? (
                             otpverify ? (
                                 <>
-                                    <input className='form-control forgotemail my-3' placeholder='Enter email' disabled />
-                                    <input className='form-control otp my-3' placeholder='Enter OTP' disabled />
-                                    <input className='form-control otp my-3' placeholder='Enter New Password' onChange={handleforgotpassword} />
+                                    <input className='form-control forgotemail my-3' type="email" value={email} disabled />
+                                    <input className='form-control otp my-3' value={otp} disabled />
+                                    <input className='form-control otp my-3' type="password" autoComplete="new-password" placeholder='Enter New Password' value={newpassword} onChange={handleforgotpassword} />
                                 </>
                             ) : (
                                 <>
-                                    <input className='form-control forgotemail my-3' placeholder='Enter email' disabled />
-                                    <input className='form-control otp my-3' placeholder='Enter OTP' onChange={handleforgototp} />
+                                    <input className='form-control forgotemail my-3' type="email" value={email} disabled />
+                                    <input className='form-control otp my-3' inputMode="numeric" autoComplete="one-time-code" placeholder='Enter OTP' value={otp} onChange={handleforgototp} />
                                 </>
                             )
                         ) : (
-                            <input className='form-control forgotemail' placeholder='Enter email' onChange={handleforgotemail} />
+                            <input className='form-control forgotemail' type="email" autoComplete="email" placeholder='Enter email' value={email} onChange={handleforgotemail} />
                         )}
                     </form>
                     <div className='forgotsubmit'>

@@ -8,8 +8,9 @@ const meetschema = new mongoose.Schema(
       required: true,
     },
     meeting_members: {
-      type: Array,
+      type: [mongoose.Schema.Types.ObjectId],
       default: [],
+      validate: [(members) => members.length <= 4, "A meeting supports up to four members"],
     },
     meeting_id: {
       type: String,
@@ -21,6 +22,8 @@ const meetschema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+meetschema.index({ createdBy: 1 }, { unique: true });
 
 meetschema.methods.checkmeetExpiry = async function() {
   const twentyFourHoursAgo = new Date();

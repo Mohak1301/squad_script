@@ -1,194 +1,88 @@
 import filemodel from "../models/filemodel.js";
-import { decode } from "jsonwebtoken";
+import { cleanText } from "../helpers/validation.js";
+
+const validLanguage = (value) => typeof value === "string" && value.trim().length > 0 && value.length <= 100;
+const validMeetingId = (value) => typeof value === "string" && /^[A-Za-z0-9_-]{3,80}$/.test(value);
 
 export const uploadFileController = async (req, res) => {
   try {
-    const { title, language, content, meetingid, access } = req.body;
-    const author = decode(req.headers.authorization)._id;
+    const title = cleanText(req.body.title, 120);
+    const language = cleanText(req.body.language, 100);
+    const content = typeof req.body.content === "string" ? req.body.content : "";
+    const meetingid = cleanText(req.body.meetingid, 80);
+    const access = req.body.access === true;
+    if (!title) return res.status(400).json({ success: false, message: "Title is required" });
+    if (!validLanguage(language)) return res.status(400).json({ success: false, message: "Language is required" });
+    if (!content || content.length > 500_000) return res.status(400).json({ success: false, message: "Content is required and must be under 500 KB" });
+    if (!validMeetingId(meetingid)) return res.status(400).json({ success: false, message: "Invalid meeting ID" });
 
-    if (!title) {
-      return res.status(400).send({
-        success: false,
-        message: "Title is required",
-      });
-    }
-    if (!language) {
-      return res.status(400).send({
-        success: false,
-        message: "Language is required",
-      });
-    }
-    if (!content) {
-      return res.status(400).send({
-        success: false,
-        message: "Content is required",
-      });
-    }
-    if (!author) {
-      return res.status(400).send({
-        success: false,
-        message: "Author is required",
-      });
-    }
-    if (!meetingid) {
-      return res.status(400).send({
-        success: false,
-        message: "meetingid is required",
-      });
-    }
-    if (access===null) {
-      return res.status(400).send({
-        success: false,
-        message: "access is required",
-      });
-    }
-
-    const exist_file = await filemodel.findOne({ meetingid: meetingid });
-    if (exist_file) {
-      return res.status(300).send({
-        success: false,
-        message: "File already exists",
-      });
-    }
-
-    try {
-      const file = await filemodel.create({
-        title: title,
-        language: language,
-        content: content,
-        author: author,
-        meetingid: meetingid,
-        access: access,
-      });
-      return res.status(200).send({
-        success: true,
-        message: "done",
-      });
-    } catch (error) {
-      return res.status(400).send({
-        sucess: false,
-        message: "Error in saving",
-        error: error,
-      });
-    }
+    await filemodel.create({ title, language, content, author: req.user._id, meetingid, access });
+    return res.status(201).json({ success: true, message: "File saved" });
   } catch (error) {
-    return res.status(400).send({
-      success: false,
-      message: "Error in upload file API",
-      error: error,
-    });
+    if (error?.code === 11000) return res.status(409).json({ success: false, message: "File already exists" });
+    return res.status(500).json({ success: false, message: "Unable to save file" });
   }
 };
 
 export const getFilesController = async (req, res) => {
   try {
-    const files = await filemodel.find();
+    const files = await filemodel.find({ access: true }).select("title language content meetingid createdAt updatedAt").sort({ updatedAt: -1 }).limit(100).lean();
+    return res.status(200).json({ success: true, message: "Files retrieved successfully", files });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to retrieve files" });
+  }
+};
 
-    return res.status(200).send({
-      success: true,
-      message: "Files retrieved successfully",
-      files,
-    });
-  } catch (error) {
-    return res.status(500).send({
-      success: false,
-      message: "Error in get files API",
-      error: error,
-    });
+export const getPublicFileController = async (req, res) => {
+  try {
+    const meetingid = cleanText(req.params.meetingid, 80);
+    if (!validMeetingId(meetingid)) return res.status(400).json({ success: false, message: "Invalid meeting ID" });
+    const file = await filemodel.findOne({ meetingid, access: true }).select("title language content meetingid createdAt updatedAt").lean();
+    if (!file) return res.status(404).json({ success: false, message: "File not found" });
+    return res.status(200).json({ success: true, message: "File retrieved successfully", file });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to retrieve file" });
   }
 };
 
 export const getFileByIdController = async (req, res) => {
   try {
-    const id = decode(req.headers.authorization)._id;
-
-    const file = await filemodel.findOne({ author: id }).populate("author");
-
-    if (file) {
-      return res.status(200).send({
-        success: true,
-        message: "File retrieved successfully",
-        file,
-      });
-    } else {
-      return res.status(404).send({
-        success: false,
-        message: "File not found",
-      });
-    }
-  } catch (error) {
-    return res.status(500).send({
-      success: false,
-      message: "Error in get file by id API",
-      error: error,
-    });
+    const file = await filemodel.findOne({ author: req.user._id }).sort({ updatedAt: -1 }).lean();
+    if (!file) return res.status(404).json({ success: false, message: "File not found" });
+    return res.status(200).json({ success: true, message: "File retrieved successfully", file });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to retrieve file" });
   }
 };
 
 export const deleteFileController = async (req, res) => {
   try {
-    const { meetid } = req.body;
-    const id = decode(req.headers.authorization)._id;
-    const check = await filemodel.findOne({ meetingid: meetid });
-    if (check) {
-      if (check.author == id) {
-        const del = await filemodel.deleteOne({ meetingid: meetid });
-        console.log(meetid)
-        if (del.deletedCount == 1) {
-          console.log("hello")
-          return res.status(200).send({
-            success: true,
-            message: "deleted successfully",
-          });
-        }
-      } else {
-        return res.status(200).send({
-          success: false,
-          message: "access denied",
-        });
-      }
-    }
-    return res.status(200).send({
-      success: false,
-      message: "no meeting found",
-    });
-  } catch (error) {
-    return res.status(400).send({
-      success: false,
-      message: "error in delete api",
-    });
+    const meetid = cleanText(req.body.meetid, 80);
+    if (!validMeetingId(meetid)) return res.status(400).json({ success: false, message: "Invalid meeting ID" });
+    const result = await filemodel.deleteOne({ meetingid: meetid, author: req.user._id });
+    if (!result.deletedCount) return res.status(404).json({ success: false, message: "File not found or access denied" });
+    return res.status(200).json({ success: true, message: "Deleted successfully" });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to delete file" });
   }
 };
 
-
-export const updateFileController = async(req,res) => {
+export const updateFileController = async (req, res) => {
   try {
-    const { title, language, content, meetid, access } = req.body;
-    const id = decode(req.headers.authorization)._id;
-    const check = await filemodel.findOne({meetingid:meetid});
-    if (check){
-      if (check.author == id){
-        const del = await filemodel.updateOne({meeting:meetid},{ title, language, content, meetid, access });
-        return res.status(200).send({
-          success:true,
-          message:"updated successfully",
-        })
-      }
-      else{
-        return res.status(200).send({
-          success:false,
-          message:"access denied"
-        })
-      }
+    const meetid = cleanText(req.body.meetid || req.body.meetingid, 80);
+    if (!validMeetingId(meetid)) return res.status(400).json({ success: false, message: "Invalid meeting ID" });
+    const updates = {};
+    if (req.body.title !== undefined) updates.title = cleanText(req.body.title, 120);
+    if (req.body.language !== undefined) updates.language = cleanText(req.body.language, 100);
+    if (req.body.content !== undefined) {
+      if (typeof req.body.content !== "string" || req.body.content.length > 500_000) return res.status(400).json({ success: false, message: "Content must be under 500 KB" });
+      updates.content = req.body.content;
     }
-    return res.status(200).send({
-      success:false,
-      message:"no meeting found"
-    })
-  } catch (error) {
-    return res.status(400).send({
-      success:false,
-      message:"error in updatefile api"
-    })
+    if (req.body.access !== undefined) updates.access = req.body.access === true;
+    const file = await filemodel.findOneAndUpdate({ meetingid: meetid, author: req.user._id }, { $set: updates }, { new: true, runValidators: true }).lean();
+    if (!file) return res.status(404).json({ success: false, message: "File not found or access denied" });
+    return res.status(200).json({ success: true, message: "Updated successfully", file });
+  } catch {
+    return res.status(500).json({ success: false, message: "Unable to update file" });
   }
-}
+};

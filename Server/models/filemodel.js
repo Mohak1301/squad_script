@@ -5,14 +5,19 @@ const fileschema = new mongoose.Schema(
       title: {
         type: String,
         required: true,
+        trim: true,
+        maxlength: 120,
       },
       language: {
         type: String,
         required: true,
+        trim: true,
+        maxlength: 100,
       },
       content: {
         type: String,
         required: true,
+        maxlength: 500000,
       },
       author: {
         type: mongoose.Schema.Types.ObjectId,
@@ -32,12 +37,17 @@ const fileschema = new mongoose.Schema(
         type: String,
         required:true,
         unique : true,
+        trim: true,
+        maxlength: 80,
       }
     },
     {
       timestamps: true,
     }
   );
+
+  fileschema.index({ author: 1, updatedAt: -1 });
+  fileschema.index({ access: 1, updatedAt: -1 });
   
   fileschema.methods.checkExpiry = async function() {
     const twentyFourHoursAgo = new Date();
@@ -46,6 +56,5 @@ const fileschema = new mongoose.Schema(
       await this.model('files').deleteOne({ _id: this._id });
     }
   };
-  
+
   export default mongoose.model("files", fileschema);
-  

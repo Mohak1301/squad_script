@@ -76,7 +76,7 @@ const Contact = () => {
                 });
             }
         } catch (error) {
-            toast.error(`${e.response.data.message}`, {
+            toast.error(error.response?.data?.message || "Unable to send your message", {
                 position: "top-right",
                 autoClose: 5000,
                 hideProgressBar: false,

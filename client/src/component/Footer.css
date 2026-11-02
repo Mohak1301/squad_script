@@ -1,15 +1,1 @@
-.footer-main{
-    position: static;
-    width: 100%;
-    height: 20%;
-    padding-top: 20px;
-    bottom: 0;
-    background-color: #040514;
-    color: white;
-}
-.footer-links{
-    text-decoration: none;
-    color: white;
-    margin: 0 10px; /* Add horizontal spacing */
-    font-weight: bold; /* Make the text bold */
-}
+.footer-main{width:100%;padding:48px 0;background:#040514;color:#fff;border-top:1px solid rgba(255,255,255,.08)}.footer-inner{width:min(1180px,calc(100% - 40px));margin:auto;display:grid;grid-template-columns:1fr auto;align-items:start;gap:30px}.footer-inner strong{font-size:1.05rem}.footer-inner p{margin:7px 0 0;color:#697286;font-size:.82rem}.footer-inner nav{display:flex;gap:24px}.footer-inner a{color:#8d96a8;text-decoration:none;font-size:.8rem}.footer-inner a:hover{color:#4bc286}.footer-inner small{grid-column:1/-1;padding-top:24px;border-top:1px solid rgba(255,255,255,.07);color:#555e72;font-size:.7rem}@media(max-width:640px){.footer-inner{grid-template-columns:1fr}.footer-inner nav{flex-wrap:wrap}.footer-inner small{grid-column:1}}

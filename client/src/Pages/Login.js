@@ -1,320 +1,95 @@
-import React, { useEffect, useRef, useState } from "react";
-import Navbar from "../component/Navbar";
-import "./Login.css";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import Footer from "../component/Footer";
+import { FiArrowRight, FiCheck, FiLock, FiMail, FiUser } from "react-icons/fi";
 import axios from "axios";
-import { Bounce, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "react-toastify";
+import Navbar from "../component/Navbar";
+import Footer from "../component/Footer";
+import "./Login.css";
 
 const Login = () => {
-  // const [name,setname]
-  const containerRef = useRef(null);
-  const overlayBtnRef = useRef(null);
-  const [registername, setregistername] = useState("");
-  const [registerusername, setregisterusername] = useState("");
-  const [registeremail, setregisteremail] = useState("");
-  const [registerpassword, setregisterpassword] = useState("");
-  const [loginemail, setloginemail] = useState("");
-  const [loginpassword, setloginpassword] = useState("");
-  const [islogin, setislogin] = useState(false);
-
+  const [mode, setMode] = useState("signin");
+  const [loading, setLoading] = useState(false);
+  const [login, setLogin] = useState({ email: "", password: "" });
+  const [register, setRegister] = useState({ username: "", name: "", email: "", password: "" });
   const navigate = useNavigate();
 
-  const handleregistername = (e) => {
-    setregistername(e.target.value);
-  };
-
-  const handleregisterusername = (e) => {
-    setregisterusername(e.target.value);
-  };
-
-  const handleregisteremail = (e) => {
-    setregisteremail(e.target.value);
-  };
-
-  const handleregisterpassword = (e) => {
-    setregisterpassword(e.target.value);
-  };
-
-  const handleregisterdetails = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(
-        "/api/v1/auth/register",
-        {
-          username: registerusername,
-          name: registername,
-          email: registeremail,
-          password: registerpassword,
-        }
-      );
-      toast.success(`${response.data.message}`, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Bounce,
-      });
-    } catch (e) {
-      toast.error(`Error ${e.response.status} :${e.response.data.message}`, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Bounce,
-      });
-    }
-  };
-
-  const handleloginemail = (e) => {
-    setloginemail(e.target.value);
-  };
-
-  const handleloginpassword = (e) => {
-    setloginpassword(e.target.value);
-  };
-
-  const handlelogindetails = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await axios.post(
-        "/api/v1/auth/login",
-        {
-          email: loginemail,
-          password: loginpassword,
-        }
-      );
-
-      const t = res.data;
-      if (t.success) {
-        localStorage.setItem("auth",t.token);
-        localStorage.setItem("name",t.user.name);
-        localStorage.setItem("username",t.user.username);
-        localStorage.setItem("email",t.user.email);
-        localStorage.setItem("isVerified",String(t.user.isVerified));
-        toast.success(`${t.message}`, {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: false,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-          transition: Bounce,
-        });
-        navigate("/");
-      }
-    } catch (e) {
-      toast.error(`${e.response.data.message}`, {
-        position: "top-right",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: false,
-        draggable: true,
-        progress: undefined,
-        theme: "dark",
-        transition: Bounce,
-      });
-    }
-  };
-
   useEffect(() => {
-    const container = containerRef.current;
-    const overlayBtn = overlayBtnRef.current;
-
-    const handleClick = () => {
-      container.classList.toggle("right-panel-active");
-
-      container.classList.remove("btnScaled");
-      window.requestAnimationFrame(() => {
-        overlayBtn.classList.add("btnScaled");
-      });
+    const checkSession = async () => {
+      try {
+        const response = await axios.post("/api/v1/auth/islogin", {});
+        if (response.data.success) navigate("/", { replace: true });
+      } catch (_) { /* A missing session is expected on this page. */ }
     };
+    checkSession();
+  }, [navigate]);
 
-    overlayBtn.addEventListener("click", handleClick);
-    
-    return () => {
-      overlayBtn.removeEventListener("click", handleClick);
-    };
-  }, []);
+  const handleLogin = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await axios.post("/api/v1/auth/login", login);
+      localStorage.setItem("auth", "");
+      localStorage.setItem("name", data.user.name);
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("email", data.user.email);
+      localStorage.setItem("isVerified", String(data.user.isVerified));
+      toast.success(data.message);
+      navigate("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to sign in");
+    } finally { setLoading(false); }
+  };
 
-  const checkislogin = async (e) => {
-    try{
-      if (localStorage.getItem("auth")===""){
-        setislogin(false);
-      }
-      else{
-        const headers = {
-          "Authorization":localStorage.getItem("auth")
-        }
-        const response = await axios.post("/api/v1/auth/islogin",{},{headers:headers});
-        setislogin(response.data.success);
-      }
-    }
-    catch(error){
-      setislogin(false);
-    }
-  }
-
-  useEffect(()=>{
-    const token = localStorage.getItem("auth");
-    const name = localStorage.getItem("name");
-    const email = localStorage.getItem("email");
-    const username = localStorage.getItem("username");
-    const isVerified = localStorage.getItem("isVerified");
-    localStorage.setItem("auth",token?token:"");
-    localStorage.setItem("name",name?name:"");
-    localStorage.setItem("username",username?username:"");
-    localStorage.setItem("email",email?email:"");
-    localStorage.setItem("isVerified",isVerified?isVerified:"");
-    checkislogin();
-  },[]);
-
-  if (islogin) {
-    toast.info('Already Logged in. Redirected to home', {
-      position: "top-right",
-      autoClose: 5000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: false,
-      draggable: true,
-      progress: undefined,
-      theme: "dark",
-      transition: Bounce,
-    });
-    navigate("/");
-  }
+  const handleRegister = async (event) => {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const { data } = await axios.post("/api/v1/auth/register", register);
+      toast.success(data.message);
+      setMode("signin");
+      setLogin((current) => ({ ...current, email: register.email }));
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Unable to create account");
+    } finally { setLoading(false); }
+  };
 
   return (
-    <main className="login-main-section">
+    <div className="auth-page">
       <Navbar />
-
-      <div className="login-main">
-        <div
-          className="login-container"
-          id="login-container"
-          ref={containerRef}
-        >
-          <div className="login-form-container sign-up-container">
-            <form className="login-form" action="#">
-              <h1 className="login-h1">Create Account</h1>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="text"
-                  placeholder="Username"
-                  onChange={handleregisterusername}
-                  value={registerusername}
-                />
-                <label className="login-label" />
-              </div>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="text"
-                  placeholder="Name"
-                  onChange={handleregistername}
-                  value={registername}
-                />
-                <label className="login-label" />
-              </div>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="email"
-                  placeholder="Email"
-                  name="email"
-                  onChange={handleregisteremail}
-                  value={registeremail}
-                />
-                <label className="login-label" />
-              </div>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="password"
-                  placeholder="Password"
-                  onChange={handleregisterpassword}
-                  value={registerpassword}
-                />
-                <label className="login-label" />
-              </div>
-
-              <button className="login-button" onClick={handleregisterdetails}>
-                Sign Up
-              </button>
+      <main className="auth-shell">
+        <section className="auth-context">
+          <div className="auth-badge"><span /> Secure collaboration workspace</div>
+          <h1>Your team’s code,<br /><span>in perfect sync.</span></h1>
+          <p>Join focused sessions where conversation, code, and execution happen together.</p>
+          <ul><li><FiCheck /> End-to-end protected sessions</li><li><FiCheck /> Real-time editor and chat</li><li><FiCheck /> Built for teams of up to four</li></ul>
+          <div className="auth-code-card"><div><i /><i /><i /></div><code><em>await</em> squad.connect(<strong>'secure-room'</strong>);<br /><span>{'// Ready to build together'}</span></code></div>
+        </section>
+        <section className="auth-card" aria-label={mode === "signin" ? "Sign in" : "Create account"}>
+          <div className="auth-tabs"><button className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>Sign in</button><button className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Create account</button></div>
+          {mode === "signin" ? (
+            <form onSubmit={handleLogin}>
+              <div className="auth-heading"><span>Welcome back</span><h2>Sign in to SquadScript</h2><p>Continue to your collaboration workspace.</p></div>
+              <label>Email address<div className="input-wrap"><FiMail /><input type="email" autoComplete="email" required value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} placeholder="you@company.com" /></div></label>
+              <label>Password<div className="input-wrap"><FiLock /><input type="password" autoComplete="current-password" required value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} placeholder="Your password" /></div></label>
+              <Link className="forgot-link" to="/forgotpassword">Forgot password?</Link>
+              <button className="auth-submit" disabled={loading}>{loading ? "Signing in…" : <>Sign in <FiArrowRight /></>}</button>
+              <p className="auth-switch">New to SquadScript? <button type="button" onClick={() => setMode("register")}>Create an account</button></p>
             </form>
-          </div>
-          <div className="login-form-container sign-in-container">
-            <form className="login-form" action="#">
-              <h1 className="login-h1">Sign in</h1>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="email"
-                  placeholder="Email"
-                  name="email"
-                  onChange={handleloginemail}
-                  value={loginemail}
-                />
-                <label className="login-label" />
-              </div>
-              <div className="login-infield">
-                <input
-                  className="login-input"
-                  type="password"
-                  placeholder="Password"
-                  onChange={handleloginpassword}
-                  value={loginpassword}
-                />
-                <label className="login-label" />
-              </div>
-              <Link to="/forgotpassword" className="login-link login-forgot">
-                Forgot your password?
-              </Link>
-              <button className="login-button" onClick={handlelogindetails}>
-                Sign In
-              </button>
+          ) : (
+            <form onSubmit={handleRegister}>
+              <div className="auth-heading"><span>Start collaborating</span><h2>Create your account</h2><p>Set up your secure workspace in under a minute.</p></div>
+              <div className="auth-row"><label>Full name<div className="input-wrap"><FiUser /><input type="text" autoComplete="name" required value={register.name} onChange={(e) => setRegister({ ...register, name: e.target.value })} placeholder="Your name" /></div></label><label>Username<div className="input-wrap"><FiUser /><input type="text" autoComplete="username" required value={register.username} onChange={(e) => setRegister({ ...register, username: e.target.value })} placeholder="username" /></div></label></div>
+              <label>Email address<div className="input-wrap"><FiMail /><input type="email" autoComplete="email" required value={register.email} onChange={(e) => setRegister({ ...register, email: e.target.value })} placeholder="you@company.com" /></div></label>
+              <label>Password<div className="input-wrap"><FiLock /><input type="password" autoComplete="new-password" minLength="8" required value={register.password} onChange={(e) => setRegister({ ...register, password: e.target.value })} placeholder="8+ chars, upper/lowercase and number" /></div></label>
+              <button className="auth-submit" disabled={loading}>{loading ? "Creating account…" : <>Create account <FiArrowRight /></>}</button>
+              <p className="auth-terms">By continuing, you agree to our <Link to="/tnc">Terms</Link> and <Link to="/privacy-policy">Privacy Policy</Link>.</p>
             </form>
-          </div>
-          <div
-            className="login-overlay-container"
-            id="overlayCon"
-            ref={overlayBtnRef}
-          >
-            <div className="login-overlay">
-              <div className="login-overlay-panel login-overlay-left">
-                <h1 className="login-h1">Welcome Back!</h1>
-                <p className="login-p">
-                  To keep connected with us please login with your personal info
-                </p>
-                <button className="login-button">Sign In</button>
-              </div>
-              <div className="login-overlay-panel login-overlay-right">
-                <h1 className="login-h1">Hello, Friend!</h1>
-                <p className="login-p">
-                  Enter your personal details and start journey with us
-                </p>
-                <button className="login-button">Sign Up</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
+          )}
+        </section>
+      </main>
       <Footer />
-    </main>
+    </div>
   );
 };
 

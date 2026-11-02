@@ -7,7 +7,7 @@ import { Bounce, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 const Compiler = (props) => {
 
-  const files = {
+  const files = useMemo(() => ({
     'C# (Mono 6.6.0.161)': {
       name: 'script.cs',
       language: 'C# (Mono 6.6.0.161)',
@@ -232,7 +232,7 @@ const Compiler = (props) => {
       is_archived: false,
       editor_name: 'typescript'
     }
-  }
+  }), []);
 
   // {"stdout":"Hello World","time":"0.001","memory":784,"stderr":null,"token":"e3e8b7a3-1d1b-4dd4-b2c5-3d3d711cd612","compile_output":null,"message":null,"status":{"id":3,"description":"Accepted"}}
 
@@ -241,12 +241,11 @@ const Compiler = (props) => {
 
   useEffect(() => {
     setFileContent(props.FileContent !== "" ? props.FileContent : files[fileName].value);
-  }, [props.FileContent]);
+  }, [props.FileContent, fileName, files]);
 
-  useEffect(() => {
-    props.fun(fileContent);
-
-  },)
+  const collaborationRef = useRef(props.fun);
+  useEffect(() => { collaborationRef.current = props.fun; }, [props.fun]);
+  useEffect(() => { collaborationRef.current(fileContent); }, [fileContent]);
 
 
   const handleTextChange = (value, event) => {
@@ -377,7 +376,7 @@ const Compiler = (props) => {
     }
   }
 
-  const [editorwidth, seteditorwidth] = useState("640px");
+  const [editorwidth] = useState("100%");
   const [useeditorwidth, setuseeditorwidth] = useState(false);
 
   const [checkacc,setcheckacc] = useState(false);
@@ -425,9 +424,9 @@ const Compiler = (props) => {
   return (
     <>
 
-      <div className='d-flex justify-content-evenly' style={{"width":"1250px" ,"height":"530px"}}>
+      <div className='compiler-workspace'>
       <div className='trial'>
-        <div className={`w-100" d-flex`}>
+        <div className="compiler-toolbar-selects">
         <select className='form-select bg-dark text-light' id="compiler-languages" onChange={handleLanguageChange} value={fileName}>
           {Object.keys(files).map((key) => (
             <option key={key} value={key}>
@@ -513,13 +512,14 @@ const Compiler = (props) => {
         <input type='file' id='file' className='form-control' onChange={uploadcode} style={{ display: 'none' }} />
         <label htmlFor='file' className='btn btn-dark ms-4'>Upload Code File</label>
         <button className='btn btn-dark ms-4' onClick={changeterminal}>{isTerminalOpen ? 'Close Terminal' : 'Open Terminal'}</button>
+        <label className="snapshot-access"><input type="checkbox" checked={checkacc} onChange={(event) => setcheckacc(event.target.checked)} /> Share snapshot publicly</label>
+        <button className='btn btn-dark' onClick={uploadtodb}>Save snapshot</button>
       </div>
-      <div className='input-div'>
-      
-      </div>
-      <div>
-          <div className='compiler-output me-5 p-0' style={{"position":"relative","right":"70px"}}>
+      <div className='compiler-output-panel'>
+          <div className='compiler-output'>
+            <label htmlFor="compiler-inputhandler">Program input</label>
             <textarea id="compiler-inputhandler" className='form-control compiler-textarea' onChange={handleinputchange}></textarea>
+            <label>Execution result</label>
             {!executionerror ? (
               <textarea className='form-control compiler-textarea' style={{"height":"200px"}} readOnly>
                 {`Output: ${output}\nTime Taken: ${executiontime}\nSpace Taken: ${executionspace}`}

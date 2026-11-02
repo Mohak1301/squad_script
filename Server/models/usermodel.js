@@ -19,9 +19,20 @@ const userschema = new mongoose.Schema(
     password: {
       type: String,
       required: true,
+      select: false,
     },
     otp: {
-      type: Number,
+      type: String,
+      select: false,
+    },
+    otpPurpose: {
+      type: String,
+      enum: ["email-verification", "password-reset"],
+      select: false,
+    },
+    otpExpiresAt: {
+      type: Date,
+      select: false,
     },
     isVerified: {
       type: Boolean,
@@ -37,6 +48,16 @@ const userschema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+userschema.set("toJSON", {
+  transform: (_document, value) => {
+    delete value.password;
+    delete value.otp;
+    delete value.otpPurpose;
+    delete value.otpExpiresAt;
+    return value;
+  },
+});
 
 userschema.methods.checkVerification = async function() {
   const sixMonthsAgo = new Date();
